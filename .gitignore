@@ -1,0 +1,13 @@
+*.nc
+!masks/CMIP6-1.5_level850-NAs_mask.nc
+*.nc4
+*.npy
+*.out
+*.err
+__pycache__
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pt
+**/log/
