@@ -10,5 +10,6 @@
     "data_proj": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/proj_files",
     "figs": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/figs/figs_pdf",
     "ccs": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/ccs",
-    "xai": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/xai"
+    "xai": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/xai",
+    "figs": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/figs/figs_pdf"
 }

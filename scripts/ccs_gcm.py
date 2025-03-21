@@ -89,5 +89,5 @@ for period in periods_fut:
         ccs_values = metrics_ccs.compute_ccs(hist_data=pred_hist, fut_data=pred_fut_period,
                                              reduction_function=metrics[metric],
                                              relative=relative)
-        ccs_values.to_netcdf(f'{ccs_path}/{gcm_model_name}_{scenario}_{gcm_run}_{period}_raw_{metric}.nc')
+        ccs_values.to_netcdf(f'{ccs_path}/{gcm_model_name}_{scenario}_{gcm_run}_{period}_raw_{var_target}_{metric}.nc')
 ####

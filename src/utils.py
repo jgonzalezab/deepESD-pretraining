@@ -202,29 +202,29 @@ def load_surface_gcm(gcm: str, var: str, scenario: str, gcm_path: str) -> xr.Dat
 
     return data
 
-def get_epochs_wrt_rmse(loss_list, candidate_epochs):
-    
-    funcs_to_compute = [lambda x: np.min(x),
-                        lambda x: np.quantile(x, 0.25),
-                        lambda x: np.median(x),
-                        lambda x: np.quantile(x, 0.75),
-                        lambda x: np.max(x)]
+def nan_masking_xarray(data: xr.Dataset, var_target: str,
+                       nan_perc: float) -> xr.Dataset:
 
-    loss_filtered = [loss_list[x] for x in candidate_epochs if x < len(loss_list)]
+    '''
+    Randomly mask the data xr.Dataset.
+    '''
 
-    epochs_selected = []
-    rmse_values = []
-    for func in funcs_to_compute:
-        closest_value = min(loss_filtered,
-                            key=lambda x: abs(x - func(loss_filtered)))
-        rmse_values.append(closest_value)
-        arg_epoch = loss_filtered.index(closest_value)
-        epochs_selected.append(candidate_epochs[arg_epoch])
+    data_copy = data.copy(deep=True)
 
-    return epochs_selected, rmse_values
+    data_shape = data_copy[var_target].values.shape
+    random_array = np.random.uniform(low=0.0, high=1.0, size=data_shape)
+    mask = np.where(random_array > nan_perc, 1, np.nan)
+
+    data_copy[var_target] = data_copy[var_target] * mask
+
+    return data_copy
 
 def compute_gcm_mask_PNACC(template):
     
+    '''
+    Maks the GCM to align with the PNACC domain
+    '''
+
     # Set mask
     var_data = list(template.data_vars.keys())[0]
 
