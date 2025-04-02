@@ -20,7 +20,7 @@ data_path = paths['data']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmin'
 #########################
 
 # Period to plot

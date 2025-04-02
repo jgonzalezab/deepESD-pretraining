@@ -20,7 +20,7 @@ xai_path = paths['xai']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmin'
 num_ensemble = 1
 #########################
 

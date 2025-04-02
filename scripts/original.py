@@ -33,7 +33,7 @@ ccs_path = paths['ccs']
 
 ##### Configuration #####
 var_target = sys.argv[1] # tasmin, tasmax, pr
-num_ensemble = 1 # Member of the ensemble of deep learning models to run
+num_ensemble = 1 # Member of the ensemble of deep learning models to run #### Debugging ####
 years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
 
 gcm_name = 'EC-Earth3-Veg_r1i1p1f1' # GCM to downscale
@@ -171,6 +171,10 @@ x_test = predictor.sel(time=slice(*years_test))
 
 # Standardize the predictors
 x_test_stand = trans.standardize(data_ref=x_train, data=x_test)
+
+# Mask the predictors
+# This is done to handle the NaNs of some GCMs from CMIP6
+x_test_stand = x_test_stand * mask_predictors['clt']
 
 # Compute and save the predictions on the test set
 pred_test = deep_pred.compute_preds_standard(x_data=x_test_stand, model=model,

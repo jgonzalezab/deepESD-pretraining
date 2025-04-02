@@ -203,7 +203,12 @@ x_test = predictor.sel(time=slice(*years_test))
 # Standardize the predictors
 x_test_stand = trans.standardize(data_ref=x_train, data=x_test)
 
+# Mask the predictors
+# This is done to handle the NaNs of some GCMs from CMIP6
+x_test_stand = x_test_stand * mask_predictors['clt']
+
 # Create output template
+y_train = predictand.sel(time=slice(*years_train))
 template = y_train.mean('time')
 
 # Compute and save the predictions on the test set

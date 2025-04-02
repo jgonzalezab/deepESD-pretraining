@@ -22,7 +22,7 @@ loss_path = paths['loss']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'tasmax'
+var_target = 'pr'
 num_total_ensemble = 10
 #########################
 
@@ -30,8 +30,8 @@ num_total_ensemble = 10
 for num_ensemble in range(1, num_total_ensemble+1):
 
     loss_train = {'No pre-training': np.load(f'{loss_path}/train_deepESD_stations_original_{var_target}_ens{num_ensemble}.npy'),
-                'Pre-trained': np.load(f'{loss_path}/train_deepESD_stations_pretrained_{var_target}_ens{num_ensemble}.npy'),
-                'Pre-trained w/ fine-tuning': np.load(f'{loss_path}/train_deepESD_stations_pretrained_finetuning_{var_target}_ens{num_ensemble}.npy')}
+                  'Pre-trained': np.load(f'{loss_path}/train_deepESD_stations_pretrained_{var_target}_ens{num_ensemble}.npy'),
+                  'Pre-trained w/ fine-tuning': np.load(f'{loss_path}/train_deepESD_stations_pretrained_finetuning_{var_target}_ens{num_ensemble}.npy')}
 
     colors = {'No pre-training': 'orange',
               'Pre-trained': 'blue',
@@ -58,14 +58,14 @@ else:
 
 # Set legend
 legend_handles = []
-for model in models:
+for model, _ in colors.items():
     handle = mlines.Line2D([], [], color=colors[model], linestyle='solid', linewidth=2, label=model)
     legend_handles.append(handle)
 plt.legend(handles=legend_handles)
 
 plt.title(var_name[var_target])
 plt.xlabel('Epoch')
-plt.ylabel('Loss (ASYM)')
+plt.ylabel(y_label)
 plt.grid(True)
 
 plt.savefig(f'{figs_path}/loss_{var_target}.pdf',
