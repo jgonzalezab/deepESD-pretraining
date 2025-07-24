@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 
-sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deep4downscaling')
+sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/deep4downscaling/')
 import deep4downscaling.metrics as metrics
 
 # Load paths
@@ -14,19 +14,22 @@ preds_path = paths['data_preds']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'tasmin'
+var_target = 'pr'
 num_total_ensemble = 10
 training_routine_list = ['original', 'pretrained', 'pretrained_finetuning']
 years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
 #########################
 
-# Load predictand
-predictand_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
-predictand = xr.open_dataset(predictand_filename).load()
-predictand = predictand.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+# Load predictand for original model
+predictand_original_filename = f'{data_path}/{var_target}_AEMET.nc'
+predictand_original = xr.open_dataset(predictand_original_filename).load()
+y_test_original = predictand_original.sel(time=slice(*years_test))
 
-# Subset into training and test sets
-y_test = predictand.sel(time=slice(*years_test))
+# Load predictand for comparison models
+predictand_comparison_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
+predictand_comparison = xr.open_dataset(predictand_comparison_filename).load()
+predictand_comparison = predictand_comparison.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+y_test_comparison = predictand_comparison.sel(time=slice(*years_test))
 
 # Define the functions
 def bias_tnn(target, pred):
@@ -35,32 +38,8 @@ def bias_tnn(target, pred):
 def bias_txx(target, pred):
     return metrics.bias_txx(target=target, pred=pred, var_target=var_target)
 
-def bias_P02(target, pred):
-    return metrics.bias_quantile(target=target, pred=pred, quantile=0.02, var_target=var_target)
-
 def bias_mean(target, pred):
     return metrics.bias_mean(target=target, pred=pred, var_target=var_target)
-
-def bias_P98(target, pred):
-    return metrics.bias_quantile(target=target, pred=pred, quantile=0.98, var_target=var_target)
-
-def ratio_sd(target, pred):
-    return metrics.ratio_std(target=target, pred=pred, var_target=var_target)
-
-def bias_rel_mean(target, pred):
-    return metrics.bias_rel_mean(target=target, pred=pred, var_target=var_target)
-
-def bias_rel_P99(target, pred):
-    return metrics.bias_rel_quantile(target=target, pred=pred, quantile=0.99, var_target=var_target)
-
-def bias_rel_rx1day(target, pred):
-    return metrics.bias_rel_rx1day(target=target, pred=pred, var_target=var_target)
-
-def bias_rel_SDII(target, pred):
-    return metrics.bias_rel_SDII(target=target, pred=pred, var_target=var_target)
-
-def ratio_interannual_var(target, pred):
-    return metrics.ratio_interannual_var(target=target, pred=pred, var_target=var_target)
 
 def rmse(target, pred):
     return metrics.rmse(target=target, pred=pred, var_target=var_target)
@@ -68,62 +47,81 @@ def rmse(target, pred):
 def rmse_wet(target, pred):
     return metrics.rmse_wet(target=target, pred=pred, var_target=var_target)
 
+def bias_dry_days(target, pred):
+    return metrics.bias_dry_days(target=target, pred=pred, var_target=var_target)
+
+def bias_rx1day(target, pred):
+    return metrics.bias_rx1day(target=target, pred=pred, var_target=var_target)
+
+def bias_SDII(target, pred):
+    return metrics.bias_SDII(target=target, pred=pred, var_target=var_target)
+
 # Create the dictionary
 if var_target == 'tasmin':
     metrics_func = {
-        'Bias P02': bias_P02,
+        'RMSE': rmse,
         'Bias Mean': bias_mean,
-        'Bias P98': bias_P98,
         'Bias TNn': bias_tnn,
-        'Ratio Std. Dev.': ratio_sd,
-        'RMSE': rmse
     }
 
 elif var_target == 'tasmax':
     metrics_func = {
-        'Bias P02': bias_P02,
+        'RMSE': rmse,
         'Bias Mean': bias_mean,
-        'Bias P98': bias_P98,
-        'Bias TXx': bias_tnn,
-        'Ratio Std. Dev.': ratio_sd,
-        'RMSE': rmse
+        'Bias TXx': bias_txx,
     }
 
 elif var_target == 'pr':
     metrics_func = {
-        'Rel. Bias Mean': bias_rel_mean,
-        'Rel. Bias P99': bias_rel_P99,
-        'Rel. Bias Rx1day': bias_rel_rx1day,
-        'Rel. Bias SDII': bias_rel_SDII,
-        'Ratio Interannual Var.': ratio_interannual_var,
-        'RMSE (wet days)': rmse_wet
+        'RMSE (wet days)': rmse_wet,
+        'Bias Freq. Dry Days': bias_dry_days,
+        'Bias SDII': bias_SDII,
+        'Bias Rx1day': bias_rx1day,
     }
+
+# Define units for each metric
+metrics_units = {
+    'Bias Mean': '°C',
+    'Bias TNn': '°C',
+    'Bias TXx': '°C',
+    'RMSE': '°C',
+    'RMSE (wet days)': 'mm/day',
+    'Bias Freq. Dry Days': '%',
+    'Bias SDII': 'mm/day',
+    'Bias Rx1day': 'mm/day',
+}
 
 # Define violin limits
 metrics_limits = {
-    'Bias P02': (-3, 3),
     'Bias Mean': (-3, 3),
-    'Bias P98': (-3, 3),
     'Bias TNn': (-3, 3),
     'Bias TXx': (-3, 3),
-    'Ratio Std. Dev.': (0.8, 1.2),
-    'Rel. Bias Mean': (-75, 75),
-    'Rel. Bias P99': (-75, 75),
-    'Rel. Bias Rx1day': (-75, 75),
-    'Rel. Bias SDII': (-75, 75),
-    'Ratio Interannual Var.': (0.4, 1.6),
     'RMSE': (0, 4),
-    'RMSE (wet days)': (2, 18)
+    'RMSE (wet days)': (0, 20),
+    'Bias Freq. Dry Days': (-20, 20),
+    'Bias SDII': (-5, 5),
+    'Bias Rx1day': (-40, 40),
 }
 
 # Routine names
-routines_names = {'original': 'No pre-training',
-                  'pretrained': 'Pre-trained',
-                  'pretrained_finetuning': 'P-T w/ fine-tuning'}
+routines_names = {
+    'original_model': 'Original Training',
+    'original': 'No pre-training',
+    'pretrained': 'Pre-training',
+    'pretrained_finetuning': 'Fine-tuning'
+}
 
 # Compute plot
-n_rows, n_cols = 2, 3
-fig = plt.figure(figsize=(15, 10))
+subplot_width = 4
+subplot_height = 4
+
+if var_target in ('tasmin', 'tasmax'):
+    n_rows, n_cols = 1, 3
+elif var_target == 'pr':
+    n_rows, n_cols = 1, 4
+
+fig = plt.figure(figsize=(n_cols * subplot_width, n_rows * subplot_height))
+
 subplot_idx = 1
 
 for metric in metrics_func.keys():
@@ -134,7 +132,35 @@ for metric in metrics_func.keys():
                 metrics_limits[metric][1]) 
     ax.set_title(metric, fontsize=16)
 
+    # Set y-axis label with units
+    unit = metrics_units.get(metric, '')
+    ax.set_ylabel(unit, fontsize=14)
+
     pos_idx = 1
+    
+    # Plot original model violin
+    file_name = f'deepESD_{var_target}_ens1_preds_test.nc'
+    data_pred = xr.open_dataset(f'{preds_path}/{file_name}')
+    metric_value = metrics_func[metric](target=y_test_original, pred=data_pred)
+    metric_value = metric_value[var_target].values
+    metric_value = metric_value.flatten()
+    metric_value = metric_value[~np.isnan(metric_value)]
+
+    vc = plt.violinplot(metric_value,
+                        positions=[pos_idx],
+                        showextrema=False, showmedians=True,
+                        quantiles=None, points=1000)
+    
+    for pc in vc['bodies']:
+        pc.set_facecolor('orange')
+        pc.set_edgecolor('orange')
+
+    for partAxis in ['cmedians']:
+        vc[partAxis].set_colors('orange')
+
+    pos_idx = pos_idx + 1
+
+    # Plot comparison violins
     for routine_idx, routine_value in enumerate(training_routine_list):
 
         metric_value_members = []
@@ -143,7 +169,7 @@ for metric in metrics_func.keys():
             file_name = f'deepESD_stations_{routine_value}_{var_target}_ens{num_ensemble}_preds_test.nc'
             data_pred = xr.open_dataset(f'{preds_path}/{file_name}')
 
-            metric_value = metrics_func[metric](target=y_test[[var_target]], pred=data_pred[[var_target]])
+            metric_value = metrics_func[metric](target=y_test_comparison[[var_target]], pred=data_pred[[var_target]])
             metric_value = metric_value[var_target].values
             metric_value = metric_value.flatten()
             metric_value = metric_value[~np.isnan(metric_value)]
@@ -183,12 +209,14 @@ for metric in metrics_func.keys():
 
         pos_idx = pos_idx + 1
 
-    xticks = [pos for pos in range(1, len(training_routine_list)+1)]
+    xticks = [pos for pos in range(1, len(training_routine_list)+2)]
     ax.set_xticks(xticks)
-    ax.set_xticklabels([routines_names[name] for name in training_routine_list])
+    plot_labels = [routines_names['original_model']] + [routines_names[name] for name in training_routine_list]
+    ax.set_xticklabels(plot_labels, rotation=45, ha='right')
 
     subplot_idx = subplot_idx + 1
 
-fig_name = f'violin_comparison_{var_target}.pdf'
+plt.tight_layout()
+fig_name = f'violin_merged_comparison_{var_target}.pdf'
 plt.savefig(f'{figs_path}/{fig_name}', bbox_inches='tight')
 plt.close()

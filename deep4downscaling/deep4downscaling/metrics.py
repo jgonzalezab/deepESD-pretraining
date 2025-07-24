@@ -447,6 +447,57 @@ def bias_rel_R01(target: xr.Dataset, pred: xr.Dataset, var_target: str,
     metric = metric * 100
     return metric
 
+def bias_dry_days(target: xr.Dataset, pred: xr.Dataset, var_target: str, 
+                  threshold: float=1., season: str=None) -> xr.Dataset:
+
+    """
+    Compute the bias of the proportion of dry days (across time)
+    between the target and pred datasets.
+
+    Parameters
+    ----------
+    target : xr.Dataset
+        Ground truth data
+
+    pred : xr.Dataset
+        Predicted data
+
+    threshold : float
+        Wet day threshold [0,+inf]
+
+    var_target : str
+        Target variable.
+
+    season : str
+        Season to filter. If passes as None, no filtering is
+        applied.
+
+    Returns
+    -------
+    xr.Dataset
+    """
+
+    target = _filter_by_season(target, season)
+    pred = _filter_by_season(pred, season)
+    
+    # Compute the nan_mask of the pred
+    nan_mask = pred.mean('time')
+    nan_mask = (nan_mask - nan_mask) + 1
+
+    # Compute proportion of wet days
+    target = (target < threshold) * 1
+    pred = (pred < threshold) * 1
+
+    # Apply nan_mask, otherwise we get zero
+    # for nan gridpoints
+    target = target * nan_mask
+    pred = pred * nan_mask
+
+    metric = (pred.mean('time') - target.mean('time'))
+    metric = metric * 100
+    return metric
+
+
 def bias_rel_dry_days(target: xr.Dataset, pred: xr.Dataset, var_target: str, 
                       threshold: float=1., season: str=None) -> xr.Dataset:
 
@@ -498,6 +549,56 @@ def bias_rel_dry_days(target: xr.Dataset, pred: xr.Dataset, var_target: str,
     metric = metric * 100
     return metric
 
+def bias_SDII(target: xr.Dataset, pred: xr.Dataset, var_target: str, 
+              threshold: float=1., season: str=None) -> xr.Dataset:
+
+    """
+    Compute the bias of the SDII index (across time)
+    between the target and pred datasets.
+
+    Parameters
+    ----------
+    target : xr.Dataset
+        Ground truth data
+
+    pred : xr.Dataset
+        Predicted data
+
+    threshold : float
+        Wet day threshold [0,+inf]
+
+    var_target : str
+        Target variable.
+
+    season : str
+        Season to filter. If passes as None, no filtering is
+        applied.
+
+    Returns
+    -------
+    xr.Dataset
+    """
+
+    target = _filter_by_season(target, season)
+    pred = _filter_by_season(pred, season)
+    
+    # Compute the nan_mask of the pred
+    nan_mask = pred.mean('time')
+    nan_mask = (nan_mask - nan_mask) + 1
+
+    # Filter wet days
+    target = target.where(target[var_target] >= threshold)
+    pred = pred.where(pred[var_target] >= threshold)
+
+    # Apply nan_mask, otherwise we get zero
+    # for nan gridpoints
+    target = target * nan_mask
+    pred = pred * nan_mask
+
+    metric = (pred.mean('time') - target.mean('time'))
+    return metric
+
+
 def bias_rel_SDII(target: xr.Dataset, pred: xr.Dataset, var_target: str, 
                   threshold: float=1., season: str=None) -> xr.Dataset:
 
@@ -547,6 +648,44 @@ def bias_rel_SDII(target: xr.Dataset, pred: xr.Dataset, var_target: str,
     target_mean = target.mean('time')
     metric = (pred.mean('time') - target_mean) / target_mean
     metric = metric * 100
+    return metric
+
+def bias_rx1day(target: xr.Dataset, pred: xr.Dataset,
+                var_target: str, season: str=None) -> xr.Dataset:
+
+    """
+    Compute the bias of the Rx1day index between
+    the target and pred datasets.
+
+    Parameters
+    ----------
+    target : xr.Dataset
+        Ground truth data
+
+    pred : xr.Dataset
+        Predicted data
+
+    var_target : str
+        Target variable.
+
+    season : str
+        Season to filter. If passes as None, no filtering is
+        applied.
+
+    Returns
+    -------
+    xr.Dataset
+    """
+
+    target = _filter_by_season(target, season)
+    pred = _filter_by_season(pred, season)
+    
+    target = target.groupby('time.year').max('time')
+    pred = pred.groupby('time.year').max('time')
+
+    target_mean = target.mean('year')
+
+    metric = (pred.mean('year') - target.mean('year'))
     return metric
 
 def bias_rel_rx1day(target: xr.Dataset, pred: xr.Dataset,
