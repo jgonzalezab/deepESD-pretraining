@@ -1,0 +1,1 @@
+This repository contains all the code needed to reproduce all the experiments for the paper _Pre-training for Deep Statistical Climate Downscaling: A case study within the Spanish National Adaptation Plan (PNACC)_.
