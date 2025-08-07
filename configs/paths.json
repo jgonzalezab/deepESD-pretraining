@@ -1,6 +1,7 @@
 {
     "data": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/data_files",
     "data_stations": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/data_files",
+    "data_asturias": "/gpfs/projects/meteo/WORK/gonzabad/dataNC/2025_CuCC_Asturias/data",
     "data_preds": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/pred_files",
     "gcm_raw": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/gcm_raw",
     "loss": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/loss",
@@ -9,6 +10,7 @@
     "asym": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/asym_files",
     "data_proj": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/proj_files",
     "figs": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/figs/figs_pdf",
+    "figs_asturias": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/figs_asturias/figs_pdf",
     "ccs": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/ccs",
     "xai": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/data/xai",
     "figs": "/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/figs/figs_pdf"
