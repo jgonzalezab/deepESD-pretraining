@@ -11,8 +11,82 @@ import captum
 import torch
 import numpy as np
 import tqdm
+from typing import Optional, List
 
 import deep4downscaling.trans as trans
+
+def get_closest_gridpoints_to_stations(grid_mask: xr.Dataset, 
+                                       stations_mask: xr.Dataset) -> List[int]:
+    """
+    Find the indices in the grid mask of gridpoints closest to each station.
+    
+    This function is useful when comparing grid-based and station-based predictions.
+    It ensures the ASM/SDM computations use the same set of points for both datasets
+    by selecting only grid points that are closest to each station location.
+    
+    Parameters
+    ----------
+    grid_mask : xr.Dataset
+        Dataset with latitude and longitude coordinates representing a grid.
+        Should have 'lat' and 'lon' dimensions with shape (n_lat, n_lon).
+    
+    stations_mask : xr.Dataset
+        Dataset with station data. Should have a single dimension (e.g., 'station')
+        with 'lat' and 'lon' coordinates.
+    
+    Returns
+    -------
+    List[int]
+        List of indices in the flattened grid corresponding to gridpoints 
+        closest to each station.
+    """
+    
+    # Stack grid mask to get all gridpoints
+    grid_stack = grid_mask.stack(gridpoint=('lat', 'lon'))
+    grid_stack_filt = grid_stack.where(grid_stack==1, drop=True)
+    
+    # Get grid coordinates - work with the stacked structure directly
+    grid_lats = grid_stack_filt['lat'].values
+    grid_lons = grid_stack_filt['lon'].values
+    num_grid_points = len(grid_lats)
+    
+    # Get station coordinates
+    # Handle both grid-based stations (with lat/lon coords) and 1D station data
+    if ('lat' in stations_mask.dims) and ('lon' in stations_mask.dims):
+        # Grid-based stations - stack them first
+        stations_stack = stations_mask.stack(gridpoint=('lat', 'lon'))
+        stations_stack_filt = stations_stack.where(stations_stack==1, drop=True)
+        station_lats = stations_stack_filt['lat'].values
+        station_lons = stations_stack_filt['lon'].values
+    else:
+        # 1D station data (e.g., stations with a single dimension)
+        station_lats = stations_mask['lat'].values
+        station_lons = stations_mask['lon'].values
+    
+    closest_gridpoint_indices = []
+    
+    # For each station, find the closest gridpoint
+    for station_idx in range(len(station_lats)):
+        station_lat = station_lats[station_idx]
+        station_lon = station_lons[station_idx]
+        
+        # Compute distance to all gridpoints using vectorized operations
+        distances = np.sqrt((grid_lats - station_lat)**2 + 
+                           (grid_lons - station_lon)**2)
+        
+        # Find closest gridpoint index
+        closest_idx = np.argmin(distances)
+        closest_gridpoint_indices.append(closest_idx)
+    
+    # Remove duplicates while preserving order
+    unique_indices = []
+    seen = set()
+    for idx in closest_gridpoint_indices:
+        if idx not in seen:
+            unique_indices.append(idx)
+            seen.add(idx)
+    
+    return unique_indices
 
 def get_grid_position(mask: xr.Dataset, coord: tuple) -> int:
 
@@ -240,7 +314,8 @@ def compute_ism(data: xr.Dataset, mask: xr.Dataset,
 def compute_asm(data: xr.Dataset, mask: xr.Dataset,
                 model: torch.nn.Module, device: str,
                 xai_method: captum.attr, batch_size: int,
-                postprocess: bool, noise_threshold: float=0.1) -> xr.Dataset:
+                postprocess: bool, noise_threshold: float=0.1,
+                target_gridpoints: Optional[List[int]] = None) -> xr.Dataset:
     
     """
     Compute the Aggregated Saliency Map (ASM) as defined in González-Abad et al. 2024.
@@ -294,6 +369,11 @@ def compute_asm(data: xr.Dataset, mask: xr.Dataset,
         Threshold to filter the noise if the postprocessing is
         applied.
 
+    target_gridpoints : List[int], optional
+        If provided, compute ASM only for these gridpoint indices. 
+        Useful for comparing grid and station-based models by selecting
+        only grid points closest to stations.
+
     Returns
     -------
     xr.Dataset
@@ -314,15 +394,23 @@ def compute_asm(data: xr.Dataset, mask: xr.Dataset,
     if ('lat' in mask.dims) and ('lon' in mask.dims): # Grid
         mask_stack = mask.stack(gridpoint=('lat', 'lon'))
         mask_stack_filt = mask_stack.where(mask_stack==1, drop=True)
-        num_gridpoints = len(mask_stack_filt['gridpoint'].values)
+        num_gridpoints_total = len(mask_stack_filt['gridpoint'].values)
     elif len(mask.dims) == 1: # Stations
         idx_dim = list(mask.dims)[0]
-        num_gridpoints = len(mask[idx_dim])
+        num_gridpoints_total = len(mask[idx_dim])
     else:
         msg_error = """Please provide a mask with either latitude (lat) and
             longitude (lon) coordinates (for station data) or a single coordinate
             corresponding to the stations (station data)."""
         raise ValueError(msg_error)
+
+    # Determine which gridpoints to compute
+    if target_gridpoints is None:
+        gridpoints_to_compute = list(range(num_gridpoints_total))
+    else:
+        gridpoints_to_compute = sorted(target_gridpoints)
+    
+    num_gridpoints = len(gridpoints_to_compute)
 
     # We create an empty torch.tensor to store the ASMs 
     asm_values = torch.zeros(data_tensor.shape).to(device)
@@ -333,7 +421,10 @@ def compute_asm(data: xr.Dataset, mask: xr.Dataset,
     else:
         num_batches = (num_gridpoints + batch_size - 1) // batch_size
 
-    print('Computing ASMs...')
+    if target_gridpoints is not None:
+        print(f'Computing ASMs for {num_gridpoints} target gridpoints (out of {num_gridpoints_total} total)...')
+    else:
+        print('Computing ASMs...')
 
     # Iterate over time
     for time_step in tqdm.tqdm(range(time_span)):
@@ -345,12 +436,12 @@ def compute_asm(data: xr.Dataset, mask: xr.Dataset,
         # Iterate over gridpoints
         for batch in range(num_batches):
 
-            # Set batch indices
-            start_batch = batch * batch_size
-            end_batch = min((batch + 1) * batch_size, num_gridpoints)
+            # Set batch indices within the target gridpoints
+            start_idx = batch * batch_size
+            end_idx = min((batch + 1) * batch_size, num_gridpoints)
 
-            # Get gridpoints in the batch
-            gridpoints_batch = list(range(start_batch, end_batch))
+            # Get gridpoint indices to process in this batch
+            gridpoints_batch = gridpoints_to_compute[start_idx:end_idx]
 
             # Replicate the input data to match the length of the gridpoints in
             # the batch. This is a requirement of captum.
@@ -358,7 +449,7 @@ def compute_asm(data: xr.Dataset, mask: xr.Dataset,
 
             # Compute the saliency of the gridpoints in the batch
             xai_values = xai_method.attribute(data_tensor_time_step_rep,
-                                              target=list(range(start_batch, end_batch)))
+                                              target=gridpoints_batch)
 
             # Postprocess the saliency maps
             if postprocess:

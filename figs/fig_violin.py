@@ -12,9 +12,11 @@ paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/c
 data_path = paths['data']
 preds_path = paths['data_preds']
 figs_path = paths['figs']
+data_stations_eca = paths['data_stations_eca']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmax'
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_total_ensemble = 10
 training_routine_list = ['original', 'pretrained', 'pretrained_finetuning']
 years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
@@ -26,9 +28,10 @@ predictand_original = xr.open_dataset(predictand_original_filename).load()
 y_test_original = predictand_original.sel(time=slice(*years_test))
 
 # Load predictand for comparison models
-predictand_comparison_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
+predictand_comparison_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'  
 predictand_comparison = xr.open_dataset(predictand_comparison_filename).load()
-predictand_comparison = predictand_comparison.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+predictand_comparison = predictand_comparison.drop_vars(('elevation', 'country'))
+predictand_comparison = predictand_comparison.rename({var_target_eca: var_target})
 y_test_comparison = predictand_comparison.sel(time=slice(*years_test))
 
 # Define the functions
@@ -128,8 +131,8 @@ for metric in metrics_func.keys():
 
     ax = fig.add_subplot(n_rows, n_cols, subplot_idx)
     ax.yaxis.grid(True, linestyle='--', which='major', color='gray', alpha=0.7)
-    ax.set_ylim(metrics_limits[metric][0],
-                metrics_limits[metric][1]) 
+    # ax.set_ylim(metrics_limits[metric][0],
+    #             metrics_limits[metric][1]) 
     ax.set_title(metric, fontsize=16)
 
     # Set y-axis label with units
@@ -146,17 +149,17 @@ for metric in metrics_func.keys():
     metric_value = metric_value.flatten()
     metric_value = metric_value[~np.isnan(metric_value)]
 
-    vc = plt.violinplot(metric_value,
-                        positions=[pos_idx],
-                        showextrema=False, showmedians=True,
-                        quantiles=None, points=1000)
-    
-    for pc in vc['bodies']:
-        pc.set_facecolor('orange')
-        pc.set_edgecolor('orange')
+    bp = ax.boxplot(metric_value,
+                    positions=[pos_idx],
+                    patch_artist=True,
+                    widths=0.6)
 
-    for partAxis in ['cmedians']:
-        vc[partAxis].set_colors('orange')
+    for box in bp['boxes']:
+        box.set_facecolor('orange')
+        box.set_edgecolor('orange')
+
+    for median in bp['medians']:
+        median.set_color('orange')
 
     pos_idx = pos_idx + 1
 
@@ -166,7 +169,7 @@ for metric in metrics_func.keys():
         metric_value_members = []
         for num_ensemble in range(1, num_total_ensemble+1):
 
-            file_name = f'deepESD_stations_{routine_value}_{var_target}_ens{num_ensemble}_preds_test.nc'
+            file_name = f'deepESD_stations_eca_{routine_value}_{var_target}_ens{num_ensemble}_preds_test.nc'
             data_pred = xr.open_dataset(f'{preds_path}/{file_name}')
 
             metric_value = metrics_func[metric](target=y_test_comparison[[var_target]], pred=data_pred[[var_target]])
@@ -182,17 +185,17 @@ for metric in metrics_func.keys():
 
         # Plot violin
         member_to_plot = metric_value_members[0]
-        vc = plt.violinplot(member_to_plot,
-                            positions=[pos_idx],
-                            showextrema=False, showmedians=True,
-                            quantiles=None, points=1000)
+        bp = ax.boxplot(member_to_plot,
+                        positions=[pos_idx],
+                        patch_artist=True,
+                        widths=0.6)
 
-        for pc in vc['bodies']:
-            pc.set_facecolor('blue')
-            pc.set_edgecolor('blue')
+        for box in bp['boxes']:
+            box.set_facecolor('blue')
+            box.set_edgecolor('blue')
 
-        for partAxis in ['cmedians']:
-            vc[partAxis].set_colors('blue')
+        for median in bp['medians']:
+            median.set_color('blue')
 
         # Plot medians
         ax.hlines(y=ensemble_members_median_max,

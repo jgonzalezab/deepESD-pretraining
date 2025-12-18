@@ -22,6 +22,7 @@ import deep4downscaling.metrics_ccs as metrics_ccs
 # Load paths
 paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
 data_path = paths['data']
+data_stations_eca = paths['data_stations_eca']
 gcm_raw_path = paths['gcm_raw']
 preds_path = paths['data_preds']
 model_path = paths['models']
@@ -33,6 +34,7 @@ ccs_path = paths['ccs']
 
 ##### Configuration #####
 var_target = sys.argv[1] # tasmin, tasmax, pr
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = sys.argv[2] # Member of the ensemble of deep learning models to run
 years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
 
@@ -57,9 +59,10 @@ predictor_filename = f'{data_path}/ERA5_NorthAtlanticRegion_1-5dg_full.nc'
 predictor = xr.open_dataset(predictor_filename).load()
 
 # Load predictand
-predictand_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
+predictand_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'  
 predictand = xr.open_dataset(predictand_filename).load()
-predictand = predictand.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+predictand = predictand.drop_vars(('elevation', 'country'))
+predictand = predictand.rename({var_target_eca: var_target})
 
 # Remove days with nans in the predictor
 predictor = trans.remove_days_with_nans(predictor)
@@ -82,9 +85,9 @@ x_train_stand = x_train_stand * mask_predictors['clt']
 
 # If downscaling precipitation, initialize the Asym loss function
 if var_target == 'pr':
-    loss_function = deep_loss.Asym(ignore_nans=False,
+    loss_function = deep_loss.Asym(ignore_nans=True,
                                    asym_path=asym_path,
-                                   appendix='stations')
+                                   appendix='stations_eca')
 
     if loss_function.parameters_exist():
         loss_function.load_parameters()
@@ -95,7 +98,7 @@ if var_target == 'pr':
 # Convert data from xarray to numpy
 x_train_stand_arr = trans.xarray_to_numpy(x_train_stand)
 y_train_arr = trans.xarray_to_numpy(y_train,
-                                    ignore_vars=['station_id'])
+                                    ignore_vars=['station_id', 'station_name'])
 
 # Create Dataset
 train_dataset = deep_utils.StandardDataset(x=x_train_stand_arr,
@@ -114,7 +117,7 @@ valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size,
                               shuffle=True)
 
 # Name the model
-model_name = f'deepESD_stations_{training_routine}_{var_target}_ens{num_ensemble}'
+model_name = f'deepESD_stations_eca_{training_routine}_{var_target}_ens{num_ensemble}'
 
 # Select the proper DeepESD model and initialize it
 if var_target == 'pr':
@@ -172,7 +175,7 @@ optimizer = optim.Adam(model.parameters(),
 
 # If downscaling temperature, select the proper loss function
 if var_target in ('tasmin', 'tasmax'):
-    loss_function = deep_loss.MseLoss(ignore_nans=False)
+    loss_function = deep_loss.MseLoss(ignore_nans=True)
 
 # If downscaling precipitation, prepare the ASYM loss function
 if var_target == 'pr':

@@ -20,15 +20,16 @@ xai_path = paths['xai']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'tasmin'
+var_target = 'pr'
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1
 #########################
 
 # SDM to load (test set)
 sdm_to_load = {'Original trained model': f'{xai_path}/SDM_deepESD_{var_target}_ens{num_ensemble}_test_period.nc',
-               'No pre-training': f'{xai_path}/SDM_deepESD_stations_original_{var_target}_ens{num_ensemble}_test_period.nc',
-               'Pre-trained': f'{xai_path}/SDM_deepESD_stations_pretrained_{var_target}_ens{num_ensemble}_test_period.nc',
-               'Pre-trained w/ fine-tuning': f'{xai_path}/SDM_deepESD_stations_pretrained_finetuning_{var_target}_ens{num_ensemble}_test_period.nc'}
+               'No pre-training': f'{xai_path}/SDM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_test_period.nc',
+               'Pre-trained': f'{xai_path}/SDM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_test_period.nc',
+               'Pre-trained w/ fine-tuning': f'{xai_path}/SDM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_test_period.nc'}
 sdm_to_load = {x: xr.open_dataset(sdm_to_load[x]).load() for x in sdm_to_load}
 
 # Set colorbar

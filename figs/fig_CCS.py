@@ -20,7 +20,7 @@ ccs_path = paths['ccs']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'tasmin'
+var_target = 'pr'
 num_ensemble = 1
 training_routine_list = ['raw', '', 'original', 'pretrained', 'pretrained_finetuning']
 
@@ -69,7 +69,7 @@ for period in periods_fut.keys():
         if routine == '':
             model_name = f'deepESD_{var_target}_ens{num_ensemble}'
         else:
-            model_name = f'deepESD_stations_{routine}_{var_target}_ens{num_ensemble}'
+            model_name = f'deepESD_stations_eca_{routine}_{var_target}_ens{num_ensemble}'
 
         # Add subplot
         ax = fig.add_subplot(n_rows, n_cols, figure_idx,
@@ -89,12 +89,12 @@ for period in periods_fut.keys():
 
         # Spatially subset
         if routine in (''):
-            data = data.sel(lat=slice(34.5, 44.2)).sel(lon=slice(-10.5, 6.2))
+            data = data.sel(lat=slice(40.5, 42.9)).sel(lon=slice(0.18, 3.45))
 
         # Plot the corresponding projection
         if routine in ('original', 'pretrained', 'pretrained_finetuning'):
             im = ax.scatter(data['lon'], data['lat'], c=data[var_target],
-                            s=10, edgecolor='k', linewidth=0,
+                            s=20, edgecolor='k', linewidth=0,
                             transform=ccrs.PlateCarree(), zorder=2,
                             vmin=vmin, vmax=vmax,
                             cmap=discrete_cmap)

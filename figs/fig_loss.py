@@ -29,9 +29,9 @@ num_total_ensemble = 10
 # Iterate over ensembles
 for num_ensemble in range(1, num_total_ensemble+1):
 
-    loss_train = {'No pre-training': np.load(f'{loss_path}/train_deepESD_stations_original_{var_target}_ens{num_ensemble}.npy'),
-                  'Pre-trained': np.load(f'{loss_path}/train_deepESD_stations_pretrained_{var_target}_ens{num_ensemble}.npy'),
-                  'Pre-trained w/ fine-tuning': np.load(f'{loss_path}/train_deepESD_stations_pretrained_finetuning_{var_target}_ens{num_ensemble}.npy')}
+    loss_train = {'No pre-training': np.load(f'{loss_path}/train_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}.npy'),
+                  'Pre-trained': np.load(f'{loss_path}/train_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}.npy'),
+                  'Pre-trained w/ fine-tuning': np.load(f'{loss_path}/train_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}.npy')}
 
     colors = {'No pre-training': 'orange',
               'Pre-trained': 'blue',

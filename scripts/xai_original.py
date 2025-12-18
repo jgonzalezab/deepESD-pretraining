@@ -18,6 +18,7 @@ import deep4downscaling.deep.xai as deep_xai
 # Load paths
 paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
 data_path = paths['data']
+data_stations_eca = paths['data_stations_eca']
 gcm_raw_path = paths['gcm_raw']
 preds_path = paths['data_preds']
 model_path = paths['models']
@@ -30,6 +31,7 @@ xai_path = paths['xai']
 
 ##### Configuration #####
 var_target = sys.argv[1] # tasmin, tasmax, pr
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1 # Member of the ensemble to use to compute the XAI techniques
 years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
 #########################
@@ -110,6 +112,19 @@ model.load_state_dict(torch.load(f'{model_path}/{model_name}.pt'))
 ####
 
 #### Compute XAI metrics for the test set ####
+#### Using closest gridpoints to stations ####
+
+# Load station data to find closest gridpoints
+stations_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'  
+stations_data = xr.open_dataset(stations_filename).load()
+stations_data = stations_data.drop_vars(('elevation', 'country'))
+stations_data = stations_data.rename({var_target_eca: var_target})
+stations_mask = trans.compute_valid_mask(stations_data)
+
+# Find the gridpoints closest to each station
+target_gridpoints = deep_xai.get_closest_gridpoints_to_stations(grid_mask=y_mask,
+                                                                stations_mask=stations_mask)
+target_gridpoints = [x.item() for x in target_gridpoints]
 
 # ASM
 asm = deep_xai.compute_asm(data=x_test_stand,
@@ -117,16 +132,7 @@ asm = deep_xai.compute_asm(data=x_test_stand,
                            model=model, device=device,
                            xai_method=captum.attr.Saliency(model),
                            batch_size=1024,
-                           postprocess=True)
-asm.to_netcdf(f'{xai_path}/ASM_{model_name}_test_period.nc')
-
-# SDM
-sdm = deep_xai.compute_sdm(data=x_test_stand,
-                           mask=y_mask.copy(deep=True),
-                           var_target=var_target,
-                           model=model, device=device,
-                           xai_method=captum.attr.Saliency(model),
-                           batch_size=1024,
-                           postprocess=True)
-sdm.to_netcdf(f'{xai_path}/SDM_{model_name}_test_period.nc')
+                           postprocess=True,
+                           target_gridpoints=target_gridpoints)
+asm.to_netcdf(f'{xai_path}/ASM_{model_name}_only_eca_stations_test_period.nc') # Only ECA stations
 ####

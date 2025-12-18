@@ -18,6 +18,7 @@ import deep4downscaling.deep.xai as deep_xai
 # Load paths
 paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
 data_path = paths['data']
+data_stations_eca = paths['data_stations_eca']
 gcm_raw_path = paths['gcm_raw']
 preds_path = paths['data_preds']
 model_path = paths['models']
@@ -30,6 +31,7 @@ xai_path = paths['xai']
 
 ##### Configuration #####
 var_target = sys.argv[1] # tasmin, tasmax, pr
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1 # Member of the ensemble to use to compute the XAI techniques
 years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
 
@@ -49,10 +51,11 @@ device = ('cuda' if torch.cuda.is_available() else 'cpu')
 predictor_filename = f'{data_path}/ERA5_NorthAtlanticRegion_1-5dg_full.nc'
 predictor = xr.open_dataset(predictor_filename).load()
 
-# Load predictand
-predictand_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
+# Load predictand (updated to use ECA_blend dataset)
+predictand_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'  
 predictand = xr.open_dataset(predictand_filename).load()
-predictand = predictand.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+predictand = predictand.drop_vars(('elevation', 'country'))
+predictand = predictand.rename({var_target_eca: var_target})
 
 # Remove days with nans in the predictor
 predictor = trans.remove_days_with_nans(predictor)
@@ -82,10 +85,10 @@ x_test_stand = x_test_stand * mask_predictors['clt']
 # Convert data from xarray to numpy (test set)
 x_test_stand_arr = trans.xarray_to_numpy(x_test_stand)
 y_train_arr = trans.xarray_to_numpy(y_train,
-                                    ignore_vars=['station_id'])
+                                    ignore_vars=['station_id', 'station_name'])
 
-# Get the name of the model
-model_name = f'deepESD_stations_{training_routine}_{var_target}_ens{num_ensemble}'
+# Get the name of the model (updated to include 'eca')
+model_name = f'deepESD_stations_eca_{training_routine}_{var_target}_ens{num_ensemble}'
 
 # Select the proper DeepESD model and initialize it
 if var_target == 'pr':
@@ -128,3 +131,17 @@ sdm = deep_xai.compute_sdm(data=x_test_stand,
                            postprocess=True)
 sdm.to_netcdf(f'{xai_path}/SDM_{model_name}_test_period.nc')
 ####
+
+
+######################################################
+# import deep4downscaling.viz as deep_viz
+
+# deep_viz.multiple_map_plot(data=asm, output_path='./check.pdf',
+#                            colorbar='coolwarm', vlimits=(None, None),
+#                            num_levels=20)
+
+# deep_viz.simple_map_plot_stations(data=sdm, var_to_plot=var_target, output_path='./check.pdf',
+#                                   colorbar='Reds', vlimits=(None, None),
+#                                   num_levels=20, point_size=30,
+#                                   point_linewidth=0.5)
+######################################################

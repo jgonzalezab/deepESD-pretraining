@@ -18,18 +18,21 @@ import deep4downscaling.metrics_ccs as metrics_ccs
 paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
 data_path = paths['data']
 figs_path = paths['figs']
+data_stations_eca = paths['data_stations_eca']
 
 ##### Configuration #####
-var_target = 'tasmin'
+var_target = 'pr'
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 #########################
 
 # Period to plot
 period = ('1980', '2010') # Training set
 
 # Load stations dataset
-stations_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
+stations_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'
 stations = xr.open_dataset(stations_filename)
-stations = stations.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+stations = stations.drop_vars(('elevation', 'country')) # Remove projection and altitude variables
+stations = stations.rename({var_target_eca: var_target})  # Rename variable to match target
 stations = stations.sel(time=slice(*period))
 stations = stations.load()
 
@@ -68,7 +71,7 @@ elif var_target == 'pr':
 
 # Datasets to plot
 datasets_to_plot = {'ROCIO-IBEB': gridded,
-                    'STATIONS-IBEB': stations}
+                    'STATIONS-CAT': stations}
 
 # Compute plot
 n_rows, n_cols = len(datasets_to_plot), len(metrics_to_plot)
@@ -112,12 +115,9 @@ for dataset in datasets_to_plot.keys():
                                 transform=ccrs.PlateCarree(),
                                 vmin=vmin_plot, vmax=vmax_plot, cmap=discrete_cmap)
 
-        elif dataset == 'STATIONS-IBEB':
+        elif dataset == 'STATIONS-CAT':
 
-            if var_target == 'pr':
-                point_size = 5
-            else:
-                point_size = 10
+            point_size = 20
 
             im = plt.scatter(dataset_clim['lon'],
                              dataset_clim['lat'], c=dataset_clim[var_target],
