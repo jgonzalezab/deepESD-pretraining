@@ -10,7 +10,8 @@ import cartopy.crs as ccrs
 sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/')
 import src.utils as utils
 
-sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deep4downscaling')
+sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/deep4downscaling')
+import deep4downscaling.trans as trans
 import deep4downscaling.metrics as metrics
 import deep4downscaling.metrics_ccs as metrics_ccs
 
@@ -37,6 +38,10 @@ stations = xr.open_dataset(stations_filename)
 stations = stations.drop_vars(('elevation', 'country'))  # Remove projection and altitude variables
 stations = stations.rename({var_target_eca: var_target})  # Rename variable to match target
 stations = stations.load()
+
+# Remove stations with no values in the training period
+_, stations = trans.remove_stations_with_nans(stations.sel(time=slice(*periods['TRAIN'])), 
+                                              stations)
 
 # Load gridded dataset (full period)
 gridded_filename = f'{data_path}/{var_target}_AEMET.nc'
@@ -67,7 +72,7 @@ def compute_nan_percentage(dataset):
 ############################################################
 
 # Set colorbar parameters for percentage data
-vmin, vmax = 0, 100
+vmin, vmax = 0, 90
 num_levels = 21
 colormap = 'Reds'
 continuous_cmap = plt.get_cmap(colormap)
@@ -124,7 +129,7 @@ for period_name, period in periods.items():
         size=16,
     )
 
-    point_size = 20
+    point_size = 40
 
     im = plt.scatter(
         dataset_nan['lon'],

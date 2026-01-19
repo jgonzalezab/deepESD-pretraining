@@ -26,7 +26,7 @@ num_ensemble = 1
 #########################
 
 # ASM to load (test set)
-asm_to_load = {'Original trained model': f'{xai_path}/ASM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_test_period.nc', # Only ECA stations
+asm_to_load = {'Original trained model': f'{xai_path}/ASM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_test_period.nc',
                'No pre-training': f'{xai_path}/ASM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_test_period.nc',
                'Pre-trained': f'{xai_path}/ASM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_test_period.nc',
                'Pre-trained w/ fine-tuning': f'{xai_path}/ASM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_test_period.nc'}

@@ -49,6 +49,57 @@ def remove_days_with_nans(data: xr.Dataset,
 
     return data
 
+def remove_stations_with_nans(data_train: xr.Dataset,
+                              data_test: xr.Dataset,
+                              dim_name: str='station') -> (xr.Dataset, xr.Dataset):
+
+    """
+    Remove the stations with no values (all NaNs) in the training set. This 
+    function applies to both the training and test sets.
+
+    Parameters
+    ----------
+    data_train : xr.Dataset
+        Training dataset to check for NaN values.
+
+    data_test : xr.Dataset
+        Test dataset to filter.
+
+    dim_name : str, optional
+        Name of the station dimension. By default 'station'.
+
+    Returns
+    -------
+    (xr.Dataset, xr.Dataset)
+        Filtered training and test datasets.
+    """
+
+    # Identify variables that have both 'time' and the station dimension
+    vars_to_check = [v for v in data_train.data_vars if dim_name in data_train[v].dims and 'time' in data_train[v].dims]
+
+    if not vars_to_check:
+        return data_train, data_test
+
+    # Get station indices with at least one non-null value across all relevant variables
+    # We want to keep a station if it has at least one value in ANY of the vars_to_check.
+    # So we remove it only if it is all NaN in ALL variables.
+    nans_mask = data_train[vars_to_check].isnull().all(dim='time').to_array().values
+    nans_mask = np.logical_and.reduce(nans_mask, axis=0)
+    valid_stations_mask = ~nans_mask
+
+    # Filter both datasets
+    data_train = data_train.sel({dim_name: valid_stations_mask})
+    data_test = data_test.sel({dim_name: valid_stations_mask})
+
+    # Log the operation
+    num_removed = np.sum(nans_mask)
+    if num_removed == 0:
+        print('All stations have at least one value in the training set')
+    else:
+        print(f'Removing {num_removed} stations with no values in the training set')
+
+    return data_train, data_test
+
 def align_datasets(data_1: xr.Dataset, data_2: xr.Dataset, coord: str) -> (xr.Dataset, xr.Dataset):
 
     """

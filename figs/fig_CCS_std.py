@@ -20,7 +20,7 @@ ccs_path = paths['ccs']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'tasmax'
+var_target = 'pr'
 num_total_ensemble = 10
 training_routine_list = ['original', 'pretrained', 'pretrained_finetuning']
 

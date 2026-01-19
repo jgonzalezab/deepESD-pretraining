@@ -119,6 +119,12 @@ stations_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'
 stations_data = xr.open_dataset(stations_filename).load()
 stations_data = stations_data.drop_vars(('elevation', 'country'))
 stations_data = stations_data.rename({var_target_eca: var_target})
+
+# Remove stations with no values in the training period
+stations_data, _ = trans.remove_stations_with_nans(stations_data.sel(time=slice(*years_train)),
+                                                   stations_data.sel(time=slice(*years_train)))
+
+# Compute station mask
 stations_mask = trans.compute_valid_mask(stations_data)
 
 # Find the gridpoints closest to each station
@@ -135,4 +141,14 @@ asm = deep_xai.compute_asm(data=x_test_stand,
                            postprocess=True,
                            target_gridpoints=target_gridpoints)
 asm.to_netcdf(f'{xai_path}/ASM_{model_name}_only_eca_stations_test_period.nc') # Only ECA stations
-####
+
+# ISM
+coord_ism = (41.5, 2.1)
+
+ism = deep_xai.compute_ism(data=x_test_stand,
+                           mask=y_mask.copy(deep=True),
+                           model=model, device=device,
+                           xai_method=captum.attr.Saliency(model),
+                           coord=coord_ism,
+                           postprocess=True)
+ism.to_netcdf(f'{xai_path}/ISM_{model_name}_only_eca_stations_lat{coord_ism[0]}_lon{coord_ism[1]}_test_period.nc')

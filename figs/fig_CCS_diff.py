@@ -12,6 +12,7 @@ import src.utils as utils
 
 sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/deep4downscaling/')
 from deep4downscaling.deep.xai import get_closest_gridpoints_to_stations
+import deep4downscaling.trans as trans
 
 # Load paths
 paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
@@ -42,7 +43,7 @@ elif var_target in ('pr'):
 
 # Set colormap for differences
 if var_target in ('tasmin', 'tasmax'):
-    vmin, vmax, num_levels = -4, 4, 16
+    vmin, vmax, num_levels = -1, 1, 16
     continuous_cmap = plt.get_cmap('RdBu_r')
 elif var_target in ('pr'):
     vmin, vmax, num_levels = -20, 20, 20
@@ -56,7 +57,7 @@ maps_routine_name = {'original': 'No pre-training',
                      'pretrained_finetuning': 'Pre-trained w/ fine-tuning'}
 
 # Load grid CCS data (reference)
-grid_model_name = f'deepESD_{var_target}_ens{num_ensemble}'
+grid_model_name = f'deepESD_{var_target}_ens1'
 grid_file = f'{ccs_path}/{gcm_model_name}_{scenario}_{gcm_run}_{period}_{grid_model_name}_{metric}.nc'
 grid_ccs = xr.open_dataset(grid_file).load()
 
@@ -65,6 +66,11 @@ var_eca_map = {'tasmin': 'tn', 'tasmax': 'tx', 'pr': 'rr'}
 var_eca = var_eca_map[var_target]
 eca_data = xr.open_dataset(f'{data_stations_eca}/ECA_blend_{var_eca}.nc').load()
 eca_data = eca_data.drop_vars(('elevation', 'country'), errors='ignore')
+
+# Remove stations with no values in the training period
+train_period = ('1980', '2010')
+eca_data = eca_data.sel(time=slice(*train_period))
+eca_data, _ = trans.remove_stations_with_nans(eca_data, eca_data)
 
 # Create mask for grid data to use with get_closest_gridpoints_to_stations
 grid_mask = (grid_ccs[[var_target]].isel(time=0, drop=True).notnull() * 1) if 'time' in grid_ccs.dims else (grid_ccs[[var_target]].notnull() * 1)

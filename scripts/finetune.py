@@ -74,6 +74,9 @@ predictor, predictand = trans.align_datasets(predictor, predictand, 'time')
 x_train = predictor.sel(time=slice(*years_train))
 y_train = predictand.sel(time=slice(*years_train))
 
+# Remove stations with no values in the training period
+y_train, _ = trans.remove_stations_with_nans(y_train, y_train)
+
 # Standardize the predictors
 x_train_stand = trans.standardize(data_ref=x_train, data=x_train)
 

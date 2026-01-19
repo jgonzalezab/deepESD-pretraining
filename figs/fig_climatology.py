@@ -10,7 +10,8 @@ import cartopy.crs as ccrs
 sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/')
 import src.utils as utils
 
-sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deep4downscaling')
+sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/deep4downscaling')
+import deep4downscaling.trans as trans
 import deep4downscaling.metrics as metrics
 import deep4downscaling.metrics_ccs as metrics_ccs
 
@@ -35,6 +36,9 @@ stations = stations.drop_vars(('elevation', 'country')) # Remove projection and 
 stations = stations.rename({var_target_eca: var_target})  # Rename variable to match target
 stations = stations.sel(time=slice(*period))
 stations = stations.load()
+
+# Remove stations with no values in the training period
+stations, _ = trans.remove_stations_with_nans(stations, stations)
 
 # Load gridded dataset
 gridded_filename = f'{data_path}/{var_target}_AEMET.nc'

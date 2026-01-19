@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/deep4downscaling/')
 import deep4downscaling.metrics as metrics
+import deep4downscaling.trans as trans
 
 # Load paths
 paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
@@ -15,7 +16,7 @@ figs_path = paths['figs']
 data_stations_eca = paths['data_stations_eca']
 
 ##### Configuration #####
-var_target = 'tasmax'
+var_target = 'pr'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_total_ensemble = 10
 training_routine_list = ['original', 'pretrained', 'pretrained_finetuning']
@@ -32,7 +33,12 @@ predictand_comparison_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca
 predictand_comparison = xr.open_dataset(predictand_comparison_filename).load()
 predictand_comparison = predictand_comparison.drop_vars(('elevation', 'country'))
 predictand_comparison = predictand_comparison.rename({var_target_eca: var_target})
+
+y_train_comparison = predictand_comparison.sel(time=slice(*years_train))
 y_test_comparison = predictand_comparison.sel(time=slice(*years_test))
+
+# Remove stations with no values in the training period
+y_train_comparison, y_test_comparison = trans.remove_stations_with_nans(y_train_comparison, y_test_comparison)
 
 # Define the functions
 def bias_tnn(target, pred):
@@ -201,13 +207,13 @@ for metric in metrics_func.keys():
         ax.hlines(y=ensemble_members_median_max,
                   xmin=pos_idx-0.2,
                   xmax=pos_idx+0.2,
-                  color='black',
+                  color='orange',
                   linestyle='dashed')
 
         ax.hlines(y=ensemble_members_median_min,
                   xmin=pos_idx-0.2,
                   xmax=pos_idx+0.2,
-                  color='black',
+                  color='orange',
                   linestyle='dashed')
 
         pos_idx = pos_idx + 1

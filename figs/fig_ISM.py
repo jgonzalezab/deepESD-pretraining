@@ -1,0 +1,112 @@
+import sys
+import json
+import xarray as xr
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+import cartopy.crs as ccrs
+
+# Add project root to sys.path
+sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/')
+import src.utils as utils
+
+# Load paths
+paths = json.load(open('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/configs/paths.json'))
+xai_path = paths['xai']
+figs_path = paths['figs']
+
+##### Configuration #####
+var_target = 'pr'
+var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
+num_ensemble = 1
+coord_ism = (41.5, 2.1)
+day_to_plot = '2016-03-04' # Specific day to compare
+
+# Plotting config
+cmap = 'hot_r'
+vmin, vmax = 0, 0.008 # Adjust these as needed for sensitivity values
+n_levels = 30  # Number of discrete levels
+figsize_per_subplot = (4, 3)
+output_filename = f'ISM_{var_target}_comparison_{day_to_plot}.pdf'
+#########################
+
+# ISM files to load
+lat_st, lon_st = coord_ism
+ism_to_load = {
+    'Original trained model': f'{xai_path}/ISM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_lat{lat_st}_lon{lon_st}_test_period.nc',
+    'No pre-training': f'{xai_path}/ISM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc',
+    'Pre-trained': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc',
+    'Pre-trained w/ fine-tuning': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc'
+}
+
+# Load and sum across predictors for the specified day
+ism_data = {}
+for name, path in ism_to_load.items():
+    print(f"Loading {name} from {path}...")
+    ds = xr.open_dataset(path)
+    # Select day for visualization
+    ds_day = ds.sel(time=day_to_plot)
+    ism_data[name] = ds_day
+    ds.close()
+
+# Identify variables to plot (all data variables in the dataset)
+variables = list(ism_data[list(ism_data.keys())[0]].data_vars)
+models = list(ism_data.keys())
+
+n_rows = len(variables)
+n_cols = len(models)
+
+fig, axes = plt.subplots(n_rows, n_cols, 
+                         figsize=(figsize_per_subplot[0] * n_cols, figsize_per_subplot[1] * n_rows),
+                         subplot_kw={'projection': ccrs.PlateCarree()},
+                         constrained_layout=True)
+
+# If only one variable or one model, axes might not be a 2D array
+if n_rows == 1:
+    axes = axes[np.newaxis, :]
+if n_cols == 1:
+    axes = axes[:, np.newaxis]
+
+for r, var in enumerate(variables):
+    for c, model_name in enumerate(models):
+        ax = axes[r, c]
+        data = ism_data[model_name][var]
+        
+        # Plot the data
+        im = data.plot(ax=ax, 
+                       transform=ccrs.PlateCarree(),
+                       cmap=cmap,
+                       vmin=vmin, 
+                       vmax=vmax,
+                       levels=n_levels,
+                      add_colorbar=False)
+        
+        # Add geographical features
+        ax.coastlines()
+        ax.add_feature(ccrs.cartopy.feature.BORDERS, linestyle=':')
+        
+        # Add station location
+        ax.plot(lon_st, lat_st, 'ro', markersize=5, transform=ccrs.PlateCarree(), label='Station')
+        
+        # Titles and labels
+        if r == 0:
+            ax.set_title(model_name, fontsize=12)
+        else:
+            ax.set_title("")
+            
+        if c == 0:
+            ax.text(-0.07, 0.5, var.upper(), transform=ax.transAxes, 
+                    va='center', ha='right', fontsize=12, fontweight='bold', rotation=90)
+
+# Add a single colorbar for the whole figure
+cbar = fig.colorbar(im, 
+                    ax=axes, 
+                    orientation='vertical', 
+                    shrink=0.5, 
+                    aspect=30, 
+                    pad=0.02,
+                    label='Input Sensitivity')
+
+# Save the plot
+save_path = f"{figs_path}/{output_filename}"
+plt.savefig(save_path, dpi=300, bbox_inches='tight')

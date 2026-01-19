@@ -51,7 +51,7 @@ device = ('cuda' if torch.cuda.is_available() else 'cpu')
 predictor_filename = f'{data_path}/ERA5_NorthAtlanticRegion_1-5dg_full.nc'
 predictor = xr.open_dataset(predictor_filename).load()
 
-# Load predictand (updated to use ECA_blend dataset)
+# Load predictand
 predictand_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'  
 predictand = xr.open_dataset(predictand_filename).load()
 predictand = predictand.drop_vars(('elevation', 'country'))
@@ -69,6 +69,9 @@ y_train = predictand.sel(time=slice(*years_train))
 
 x_test = predictor.sel(time=slice(*years_test))
 y_test = predictand.sel(time=slice(*years_test))
+
+# Remove stations with no values in the training period
+y_train, y_test = trans.remove_stations_with_nans(y_train, y_test)
 
 # Standardize the predictors
 x_train_stand = trans.standardize(data_ref=x_train, data=x_train)
@@ -130,18 +133,14 @@ sdm = deep_xai.compute_sdm(data=x_test_stand,
                            batch_size=1024,
                            postprocess=True)
 sdm.to_netcdf(f'{xai_path}/SDM_{model_name}_test_period.nc')
-####
 
+# ISM
+coord_ism = (41.5, 2.1)
 
-######################################################
-# import deep4downscaling.viz as deep_viz
-
-# deep_viz.multiple_map_plot(data=asm, output_path='./check.pdf',
-#                            colorbar='coolwarm', vlimits=(None, None),
-#                            num_levels=20)
-
-# deep_viz.simple_map_plot_stations(data=sdm, var_to_plot=var_target, output_path='./check.pdf',
-#                                   colorbar='Reds', vlimits=(None, None),
-#                                   num_levels=20, point_size=30,
-#                                   point_linewidth=0.5)
-######################################################
+ism = deep_xai.compute_ism(data=x_test_stand,
+                           mask=template.copy(deep=True),
+                           model=model, device=device,
+                           xai_method=captum.attr.Saliency(model),
+                           coord=coord_ism,
+                           postprocess=True)
+ism.to_netcdf(f'{xai_path}/ISM_{model_name}_lat{coord_ism[0]}_lon{coord_ism[1]}_test_period.nc')

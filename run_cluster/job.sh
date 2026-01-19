@@ -21,7 +21,7 @@ cd /gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/scripts
 # done
 
 # Compute XAI metrics (for a single member of the ensemble)
-# python -u xai_original.py $VAR_TARGET
+python -u xai_original.py $VAR_TARGET
 
 python -u xai_finetune.py $VAR_TARGET original
 python -u xai_finetune.py $VAR_TARGET pretrained

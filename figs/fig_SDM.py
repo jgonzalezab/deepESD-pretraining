@@ -20,7 +20,7 @@ xai_path = paths['xai']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmin'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1
 #########################
