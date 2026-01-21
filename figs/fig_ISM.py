@@ -16,18 +16,23 @@ xai_path = paths['xai']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmax'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1
 coord_ism = (41.5, 2.1)
-day_to_plot = '2016-03-04' # Specific day to compare
+day_to_plot = None  # Set to specific date (e.g., '2016-03-04') or None/'all' to plot mean across all days
 
 # Plotting config
-cmap = 'hot_r'
-vmin, vmax = 0, 0.008 # Adjust these as needed for sensitivity values
+cmap = 'turbo'
+vmin, vmax = 0, 0.004 # Adjust these as needed for sensitivity values
 n_levels = 30  # Number of discrete levels
 figsize_per_subplot = (4, 3)
-output_filename = f'ISM_{var_target}_comparison_{day_to_plot}.pdf'
+
+# Generate output filename based on configuration
+if day_to_plot is None or (isinstance(day_to_plot, str) and day_to_plot.lower() == 'all'):
+    output_filename = f'ISM_{var_target}_comparison_mean_all_days.pdf'
+else:
+    output_filename = f'ISM_{var_target}_comparison_{day_to_plot}.pdf'
 #########################
 
 # ISM files to load
@@ -39,13 +44,18 @@ ism_to_load = {
     'Pre-trained w/ fine-tuning': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc'
 }
 
-# Load and sum across predictors for the specified day
+# Load and process data (select specific day or compute mean across all days)
 ism_data = {}
 for name, path in ism_to_load.items():
     print(f"Loading {name} from {path}...")
     ds = xr.open_dataset(path)
-    # Select day for visualization
-    ds_day = ds.sel(time=day_to_plot)
+    # Select specific day or compute mean across all days
+    if day_to_plot is None or (isinstance(day_to_plot, str) and day_to_plot.lower() == 'all'):
+        ds_day = ds.mean(dim='time')
+        print(f"  Computing mean across {len(ds.time)} days...")
+    else:
+        ds_day = ds.sel(time=day_to_plot)
+        print(f"  Selected day: {day_to_plot}")
     ism_data[name] = ds_day
     ds.close()
 
