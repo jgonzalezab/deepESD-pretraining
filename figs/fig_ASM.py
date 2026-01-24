@@ -26,14 +26,14 @@ num_ensemble = 1
 #########################
 
 # ASM to load (test set)
-asm_to_load = {'Original trained model': f'{xai_path}/ASM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_test_period.nc',
-               'No pre-training': f'{xai_path}/ASM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_test_period.nc',
-               'Pre-trained': f'{xai_path}/ASM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_test_period.nc',
-               'Pre-trained w/ fine-tuning': f'{xai_path}/ASM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_test_period.nc'}
+asm_to_load = {'Pre-training': f'{xai_path}/ASM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_test_period.nc',
+               'Full-training': f'{xai_path}/ASM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_test_period.nc',
+               'Partial fine-tuning': f'{xai_path}/ASM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_test_period.nc',
+               'Full fine-tuning': f'{xai_path}/ASM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_test_period.nc'}
 asm_to_load = {x: xr.open_dataset(asm_to_load[x]).load() for x in asm_to_load}
 
 # Get keys (assuming all ASMs have the same keys)
-keys = list(asm_to_load['Original trained model'].keys())
+keys = list(asm_to_load['Pre-training'].keys())
 
 # Get the values of each ASM
 values = []
@@ -46,10 +46,10 @@ num_keys = len(keys)
 num_bars = len(asm_to_load)
 
 # Colors
-bar_colors = {'Original trained model': 'silver',
-              'No pre-training': 'lightcoral',
-              'Pre-trained': 'lightgreen',
-              'Pre-trained w/ fine-tuning': 'lightskyblue'}
+bar_colors = {'Pre-training': 'silver',
+              'Full-training': 'lightcoral',
+              'Partial fine-tuning': 'lightgreen',
+              'Full fine-tuning': 'lightskyblue'}
 
 # Bar width
 bar_width = 0.25

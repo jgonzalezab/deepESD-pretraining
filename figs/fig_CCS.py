@@ -52,10 +52,10 @@ elif var_target in ('pr'):
 
 # Dict mapping training routine names
 maps_routine_name = {'raw': 'Global Climate Model',
-                     '': 'Original trained model',
-                     'original': 'No pre-training',
-                     'pretrained': 'Pre-trained',
-                     'pretrained_finetuning': 'Pre-trained w/ fine-tuning'}
+                     '': 'Pre-training',
+                     'original': 'Full-training',
+                     'pretrained': 'Partial fine-tuning',
+                     'pretrained_finetuning': 'Full fine-tuning'}
 
 # Compute figure
 n_rows, n_cols = len(periods_fut), len(training_routine_list)
@@ -94,7 +94,7 @@ for period in periods_fut.keys():
         # Plot the corresponding projection
         if routine in ('original', 'pretrained', 'pretrained_finetuning'):
             im = ax.scatter(data['lon'], data['lat'], c=data[var_target],
-                            s=20, edgecolor='k', linewidth=0,
+                            s=40, edgecolor='k', linewidth=0.5,
                             transform=ccrs.PlateCarree(), zorder=2,
                             vmin=vmin, vmax=vmax,
                             cmap=discrete_cmap)
@@ -106,8 +106,8 @@ for period in periods_fut.keys():
 
         figure_idx = figure_idx + 1
 
-cbar_ax = fig.add_axes([0.16, 0.35, 0.7, 0.02])
-cbar = fig.colorbar(im, cax=cbar_ax, orientation = 'horizontal')
+cbar_ax = fig.add_axes([0.92, 0.38, 0.02, 0.23])
+cbar = fig.colorbar(im, cax=cbar_ax, orientation = 'vertical')
 cbar.ax.tick_params(labelsize=10)
 
 plt.savefig(f'{figs_path}/CCS_{var_target}_{metric}.pdf', bbox_inches='tight')

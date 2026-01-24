@@ -55,9 +55,9 @@ elif var_target in ('pr'):
     discrete_cmap = ListedColormap(continuous_cmap(np.linspace(0, 1, num_levels)))
 
 # Dict mapping training routine names
-maps_routine_name = {'original': 'No pre-training',
-                     'pretrained': 'Pre-trained',
-                     'pretrained_finetuning': 'Pre-trained w/ fine-tuning'}
+maps_routine_name = {'original': 'Full-training',
+                     'pretrained': 'Partial fine-tuning',
+                     'pretrained_finetuning': 'Full fine-tuning'}
 
 n_rows, n_cols = len(periods_fut), len(training_routine_list)
 fig = plt.figure(figsize=(20, 10))
@@ -93,10 +93,18 @@ for period in periods_fut.keys():
         # Plot the corresponding projection
         im = ax.scatter(ccs_ensemble_std['lon'], ccs_ensemble_std['lat'],
                         c=ccs_ensemble_std[var_target],
-                        s=20, edgecolor='k', linewidth=0,
+                        s=40, edgecolor='k', linewidth=0.5,
                         transform=ccrs.PlateCarree(), zorder=2,
                         vmin=vmin, vmax=vmax,
                         cmap=discrete_cmap)
+
+        # Plot mean std in the bottom-right corner of the subplot
+        mean_std = float(ccs_ensemble_std[var_target].mean().values)
+        ax.text(0.97, 0.03, f'Mean Std. = {mean_std:.2f}',
+                transform=ax.transAxes,
+                ha='right', va='bottom',
+                fontsize=10,
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, linewidth=0.5))
 
         figure_idx = figure_idx + 1
 

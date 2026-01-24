@@ -22,7 +22,7 @@ figs_path = paths['figs']
 data_stations_eca = paths['data_stations_eca']
 
 ##### Configuration #####
-var_target = 'tasmax'
+var_target = 'pr'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 #########################
 
@@ -144,6 +144,14 @@ for period_name, period in periods.items():
         vmax=vmax,
         cmap=discrete_cmap,
     )
+
+    # Add text with statistics summary in bottom-right corner
+    mean_nan = float(station_data[var_target].mean())
+    ax.text(0.97, 0.03, f'Average % NaN = {mean_nan:.2f}',
+            transform=ax.transAxes,
+            ha='right', va='bottom',
+            fontsize=12,
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, linewidth=0.5))
 
     # Add colorbar
     cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05, fraction=0.046)

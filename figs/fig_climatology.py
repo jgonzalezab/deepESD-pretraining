@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import cartopy.crs as ccrs
+import matplotlib.patches as patches
 
 sys.path.append('/gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/')
 import src.utils as utils
@@ -118,6 +119,19 @@ for dataset in datasets_to_plot.keys():
                                 dataset_clim[var_target],
                                 transform=ccrs.PlateCarree(),
                                 vmin=vmin_plot, vmax=vmax_plot, cmap=discrete_cmap)
+            
+            # Add black square to indicate station coverage area
+            station_lats = stations['lat'].values
+            station_lons = stations['lon'].values
+            lat_min, lat_max = station_lats.min(), station_lats.max()
+            lon_min, lon_max = station_lons.min(), station_lons.max()
+            
+            rect = patches.Rectangle((lon_min, lat_min), 
+                                   lon_max - lon_min, 
+                                   lat_max - lat_min,
+                                   linewidth=2, edgecolor='black', 
+                                   facecolor='none', transform=ccrs.PlateCarree())
+            ax.add_patch(rect)
 
         elif dataset == 'STATIONS-CAT':
 
@@ -125,7 +139,7 @@ for dataset in datasets_to_plot.keys():
 
             im = plt.scatter(dataset_clim['lon'],
                              dataset_clim['lat'], c=dataset_clim[var_target],
-                             s=point_size, edgecolor='k', linewidth=0, zorder=2,
+                             s=point_size, edgecolor='k', linewidth=0.5, zorder=2,
                              transform=ccrs.PlateCarree(),
                              vmin=vmin_plot, vmax=vmax_plot, cmap=discrete_cmap)
 

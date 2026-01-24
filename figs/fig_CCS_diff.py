@@ -137,14 +137,14 @@ for routine in training_routine_comparison:
     
     # Plot as scatter (one value per station)
     im = ax.scatter(station_ccs['lon'], station_ccs['lat'], c=diff,
-                    s=50, edgecolor='k', linewidth=0.5,
+                    s=40, edgecolor='k', linewidth=0.5,
                     transform=ccrs.PlateCarree(), zorder=2,
                     vmin=vmin, vmax=vmax,
                     cmap=discrete_cmap)
     
     # Plot mean difference in the bottom-right corner of the subplot
     mean_diff = float(abs(diff).mean().values)
-    ax.text(0.97, 0.03, f'Abs. diff. mean = {mean_diff:.2f}',
+    ax.text(0.97, 0.03, f'Abs. Diff. Mean = {mean_diff:.2f}',
             transform=ax.transAxes,
             ha='right', va='bottom',
             fontsize=10,
@@ -153,10 +153,9 @@ for routine in training_routine_comparison:
     figure_idx = figure_idx + 1
 
 # Add colorbar
-cbar_ax = fig.add_axes([0.16, 0.15, 0.7, 0.02])
-cbar = fig.colorbar(im, cax=cbar_ax, orientation='horizontal')
+cbar_ax = fig.add_axes([0.92, 0.27, 0.02, 0.46])
+cbar = fig.colorbar(im, cax=cbar_ax, orientation = 'vertical')
 cbar.ax.tick_params(labelsize=10)
-cbar.set_label(f'CCS Difference ({metric}): Station - Grid', fontsize=12)
 
 plt.savefig(f'{figs_path}/CCS_diff_{var_target}_{metric}.pdf', bbox_inches='tight')
 plt.close()

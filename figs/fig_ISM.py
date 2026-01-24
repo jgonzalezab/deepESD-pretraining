@@ -16,15 +16,16 @@ xai_path = paths['xai']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'tasmax'
+var_target = 'pr'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1
 coord_ism = (41.5, 2.1)
 day_to_plot = None  # Set to specific date (e.g., '2016-03-04') or None/'all' to plot mean across all days
+variables_to_plot = ['t850', 'q700', 'v850', 'msl']  # Set to list of specific variables (e.g., ['pr', 'tasmax']) or None to plot all available variables
 
 # Plotting config
-cmap = 'turbo'
-vmin, vmax = 0, 0.004 # Adjust these as needed for sensitivity values
+cmap = 'CMRmap_r'
+vmin, vmax = 0, 0.002 # Adjust these as needed for sensitivity values
 n_levels = 30  # Number of discrete levels
 figsize_per_subplot = (4, 3)
 
@@ -38,10 +39,10 @@ else:
 # ISM files to load
 lat_st, lon_st = coord_ism
 ism_to_load = {
-    'Original trained model': f'{xai_path}/ISM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_lat{lat_st}_lon{lon_st}_test_period.nc',
-    'No pre-training': f'{xai_path}/ISM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc',
-    'Pre-trained': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc',
-    'Pre-trained w/ fine-tuning': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc'
+    'Pre-training': f'{xai_path}/ISM_deepESD_{var_target}_ens{num_ensemble}_only_eca_stations_lat{lat_st}_lon{lon_st}_test_period.nc',
+    'Full-training': f'{xai_path}/ISM_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc',
+    'Partial fine-tuning': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc',
+    'Full fine-tuning': f'{xai_path}/ISM_deepESD_stations_eca_pretrained_finetuning_{var_target}_ens{num_ensemble}_lat{lat_st}_lon{lon_st}_test_period.nc'
 }
 
 # Load and process data (select specific day or compute mean across all days)
@@ -49,6 +50,8 @@ ism_data = {}
 for name, path in ism_to_load.items():
     print(f"Loading {name} from {path}...")
     ds = xr.open_dataset(path)
+    if variables_to_plot is not None:
+        ds = ds[variables_to_plot]
     # Select specific day or compute mean across all days
     if day_to_plot is None or (isinstance(day_to_plot, str) and day_to_plot.lower() == 'all'):
         ds_day = ds.mean(dim='time')

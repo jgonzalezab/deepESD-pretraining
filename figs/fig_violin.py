@@ -102,22 +102,21 @@ metrics_units = {
 
 # Define violin limits
 metrics_limits = {
-    'Bias Mean': (-3, 3),
-    'Bias TNn': (-3, 3),
-    'Bias TXx': (-3, 3),
+    'Bias Mean': (-4, 4),
+    'Bias TNn': (-4, 4),
+    'Bias TXx': (-4, 4),
     'RMSE': (0, 4),
-    'RMSE (wet days)': (0, 20),
+    'RMSE (wet days)': (0, 30),
     'Bias Freq. Dry Days': (-20, 20),
-    'Bias SDII': (-5, 5),
-    'Bias Rx1day': (-40, 40),
+    'Bias SDII': (-10, 10),
+    'Bias Rx1day': (-90, 90),
 }
 
 # Routine names
 routines_names = {
-    'original_model': 'Original Training',
-    'original': 'No pre-training',
-    'pretrained': 'Pre-training',
-    'pretrained_finetuning': 'Fine-tuning'
+    'original': 'Full-training',
+    'pretrained': 'Partial fine-tuning',
+    'pretrained_finetuning': 'Full fine-tuning'
 }
 
 # Compute plot
@@ -137,8 +136,8 @@ for metric in metrics_func.keys():
 
     ax = fig.add_subplot(n_rows, n_cols, subplot_idx)
     ax.yaxis.grid(True, linestyle='--', which='major', color='gray', alpha=0.7)
-    # ax.set_ylim(metrics_limits[metric][0],
-    #             metrics_limits[metric][1]) 
+    ax.set_ylim(metrics_limits[metric][0],
+                metrics_limits[metric][1]) 
     ax.set_title(metric, fontsize=16)
 
     # Set y-axis label with units
@@ -146,28 +145,6 @@ for metric in metrics_func.keys():
     ax.set_ylabel(unit, fontsize=14)
 
     pos_idx = 1
-    
-    # Plot original model violin
-    file_name = f'deepESD_{var_target}_ens1_preds_test.nc'
-    data_pred = xr.open_dataset(f'{preds_path}/{file_name}')
-    metric_value = metrics_func[metric](target=y_test_original, pred=data_pred)
-    metric_value = metric_value[var_target].values
-    metric_value = metric_value.flatten()
-    metric_value = metric_value[~np.isnan(metric_value)]
-
-    bp = ax.boxplot(metric_value,
-                    positions=[pos_idx],
-                    patch_artist=True,
-                    widths=0.6)
-
-    for box in bp['boxes']:
-        box.set_facecolor('orange')
-        box.set_edgecolor('orange')
-
-    for median in bp['medians']:
-        median.set_color('orange')
-
-    pos_idx = pos_idx + 1
 
     # Plot comparison violins
     for routine_idx, routine_value in enumerate(training_routine_list):
@@ -177,6 +154,9 @@ for metric in metrics_func.keys():
 
             file_name = f'deepESD_stations_eca_{routine_value}_{var_target}_ens{num_ensemble}_preds_test.nc'
             data_pred = xr.open_dataset(f'{preds_path}/{file_name}')
+
+            if var_target == 'pr':
+                data_pred = data_pred.where(data_pred[var_target] > 0, other=0)
 
             metric_value = metrics_func[metric](target=y_test_comparison[[var_target]], pred=data_pred[[var_target]])
             metric_value = metric_value[var_target].values
@@ -197,30 +177,32 @@ for metric in metrics_func.keys():
                         widths=0.6)
 
         for box in bp['boxes']:
-            box.set_facecolor('blue')
-            box.set_edgecolor('blue')
+            box.set_facecolor('lightblue')
+            box.set_edgecolor('lightblue')
 
         for median in bp['medians']:
-            median.set_color('blue')
+            median.set_color('gray')
 
         # Plot medians
         ax.hlines(y=ensemble_members_median_max,
                   xmin=pos_idx-0.2,
                   xmax=pos_idx+0.2,
-                  color='orange',
-                  linestyle='dashed')
+                  color='blue',
+                  linestyle='dashed',
+                  zorder=3)
 
         ax.hlines(y=ensemble_members_median_min,
                   xmin=pos_idx-0.2,
                   xmax=pos_idx+0.2,
-                  color='orange',
-                  linestyle='dashed')
+                  color='blue',
+                  linestyle='dashed',
+                  zorder=3)
 
         pos_idx = pos_idx + 1
 
-    xticks = [pos for pos in range(1, len(training_routine_list)+2)]
+    xticks = [pos for pos in range(1, len(training_routine_list)+1)]
     ax.set_xticks(xticks)
-    plot_labels = [routines_names['original_model']] + [routines_names[name] for name in training_routine_list]
+    plot_labels = [routines_names[name] for name in training_routine_list]
     ax.set_xticklabels(plot_labels, rotation=45, ha='right')
 
     subplot_idx = subplot_idx + 1
