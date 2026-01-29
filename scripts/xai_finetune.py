@@ -33,7 +33,7 @@ xai_path = paths['xai']
 var_target = sys.argv[1] # tasmin, tasmax, pr
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = 1 # Member of the ensemble to use to compute the XAI techniques
-years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
+years_train = ('2009', '2018'); years_test = ('2019', '2021') # Train and test sets
 
 # Training routine of the deep learning model
 training_routine = sys.argv[2] # original, pretrained, pretrained_finetuning 

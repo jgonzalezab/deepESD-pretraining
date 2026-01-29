@@ -23,12 +23,12 @@ figs_path = paths['figs']
 data_stations_eca = paths['data_stations_eca']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmin'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 #########################
 
 # Period to plot
-period = ('1980', '2010') # Training set
+period = ('2009', '2018') # Training set
 
 # Load stations dataset
 stations_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'

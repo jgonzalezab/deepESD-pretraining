@@ -24,7 +24,7 @@ var_target = 'pr'
 #########################
 
 # Period to plot
-period = ('1980', '2010') # Training set
+period = ('2009', '2018') # Training set
 
 # Load grid data (target used for training/prediction)
 grid_filename = f'{data_path}/{var_target}_AEMET.nc'

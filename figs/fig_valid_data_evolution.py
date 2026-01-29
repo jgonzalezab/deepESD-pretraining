@@ -22,8 +22,8 @@ var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasm
 #########################
 
 # Periods to plot
-periods = {'TRAIN': ('1980', '2010'),
-           'TEST': ('2011', '2020')}
+periods = {'TRAIN': ('2010', '2020'),
+           'TEST': ('2021', '2023')}
 
 # Load stations dataset (full period)
 stations_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'

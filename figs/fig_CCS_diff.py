@@ -68,7 +68,7 @@ eca_data = xr.open_dataset(f'{data_stations_eca}/ECA_blend_{var_eca}.nc').load()
 eca_data = eca_data.drop_vars(('elevation', 'country'), errors='ignore')
 
 # Remove stations with no values in the training period
-train_period = ('1980', '2010')
+train_period = ('2009', '2018')
 eca_data = eca_data.sel(time=slice(*train_period))
 eca_data, _ = trans.remove_stations_with_nans(eca_data, eca_data)
 

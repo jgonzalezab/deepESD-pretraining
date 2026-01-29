@@ -27,8 +27,8 @@ var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasm
 #########################
 
 # Periods to plot
-periods = {'TRAIN': ('1980', '2010'),
-           'TEST': ('2011', '2020')}
+periods = {'TRAIN': ('2009', '2018'),
+           'TEST': ('2020', '2022')}
 
 # Load stations dataset (full period)
 stations_filename = f'{data_stations_eca}/ECA_blend_{var_target_eca}.nc'
@@ -56,14 +56,19 @@ def compute_data_availability(dataset):
 # Summary tables and figures per period
 ############################################################
 
-# Set colorbar parameters for percentage data
-vmin, vmax = 0, 20
-num_levels = 21
-colormap = 'turbo_r'
-continuous_cmap = plt.get_cmap(colormap)
-discrete_cmap = ListedColormap(continuous_cmap(np.linspace(0, 1, num_levels)))
-
 for period_name, period in periods.items():
+
+    if period_name == 'TRAIN':
+        vmin, vmax = 0, 10
+    elif period_name == 'TEST':
+        vmin, vmax = 0, 3
+
+    # Set colorbar parameters for percentage data
+    num_levels = 21
+    colormap = 'turbo_r'
+    continuous_cmap = plt.get_cmap(colormap)
+    discrete_cmap = ListedColormap(continuous_cmap(np.linspace(0, 1, num_levels)))
+    
     # Subset stations dataset for current period
     stations_period = stations.sel(time=slice(*period))
 

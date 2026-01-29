@@ -4,6 +4,7 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import matplotlib.ticker as ticker
 import cartopy.crs as ccrs
 
 # Add project root to sys.path
@@ -29,6 +30,11 @@ vmin, vmax = 0, 0.002 # Adjust these as needed for sensitivity values
 n_levels = 30  # Number of discrete levels
 figsize_per_subplot = (4, 3)
 
+# Spatial subsetting configuration (set to None to plot full domain)
+# lon_range: (min_lon, max_lon), lat_range: (min_lat, max_lat)
+lon_range = [-16, 17]
+lat_range = [31, 60]
+
 # Generate output filename based on configuration
 if day_to_plot is None or (isinstance(day_to_plot, str) and day_to_plot.lower() == 'all'):
     output_filename = f'ISM_{var_target}_comparison_mean_all_days.pdf'
@@ -52,6 +58,15 @@ for name, path in ism_to_load.items():
     ds = xr.open_dataset(path)
     if variables_to_plot is not None:
         ds = ds[variables_to_plot]
+    
+    # Apply spatial subsetting if specified
+    if lon_range is not None:
+        ds = ds.sel(lon=slice(lon_range[0], lon_range[1]))
+        print(f"  Subsetting longitude: {lon_range[0]}°E to {lon_range[1]}°E")
+    if lat_range is not None:
+        ds = ds.sel(lat=slice(lat_range[0], lat_range[1]))
+        print(f"  Subsetting latitude: {lat_range[0]}°N to {lat_range[1]}°N")
+    
     # Select specific day or compute mean across all days
     if day_to_plot is None or (isinstance(day_to_plot, str) and day_to_plot.lower() == 'all'):
         ds_day = ds.mean(dim='time')
@@ -99,7 +114,7 @@ for r, var in enumerate(variables):
         ax.add_feature(ccrs.cartopy.feature.BORDERS, linestyle=':')
         
         # Add station location
-        ax.plot(lon_st, lat_st, 'ro', markersize=5, transform=ccrs.PlateCarree(), label='Station')
+        ax.plot(lon_st, lat_st, 'go', markersize=8, transform=ccrs.PlateCarree(), label='Station')
         
         # Titles and labels
         if r == 0:
@@ -111,14 +126,19 @@ for r, var in enumerate(variables):
             ax.text(-0.07, 0.5, var.upper(), transform=ax.transAxes, 
                     va='center', ha='right', fontsize=12, fontweight='bold', rotation=90)
 
-# Add a single colorbar for the whole figure
+# Add a single colorbar for the whole figure with scientific notation
 cbar = fig.colorbar(im, 
                     ax=axes, 
-                    orientation='vertical', 
-                    shrink=0.5, 
-                    aspect=30, 
-                    pad=0.02,
+                    orientation='horizontal', 
+                    shrink=0.8, 
+                    aspect=40, 
+                    pad=0.05,
                     label='Input Sensitivity')
+
+# Set scientific notation format for colorbar labels
+cbar.ax.xaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
+cbar.ax.xaxis.get_major_formatter().set_scientific(True)
+cbar.ax.xaxis.get_major_formatter().set_powerlimits((-3, 3))
 
 # Save the plot
 save_path = f"{figs_path}/{output_filename}"

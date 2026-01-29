@@ -20,7 +20,7 @@ ccs_path = paths['ccs']
 figs_path = paths['figs']
 
 ##### Configuration #####
-var_target = 'pr'
+var_target = 'tasmax'
 num_total_ensemble = 10
 training_routine_list = ['original', 'pretrained', 'pretrained_finetuning']
 
@@ -68,7 +68,7 @@ for period in periods_fut.keys():
 
         # Iterate over members of the ensemble
         ccs_ensemble = []
-        for num_ensemble in range(1, num_total_ensemble+1):
+        for num_ensemble in [x for x in range(1, num_total_ensemble + 1) if x != 5]:
 
             # Set model name
             model_name = f'deepESD_stations_eca_{routine}_{var_target}_ens{num_ensemble}'
@@ -93,7 +93,7 @@ for period in periods_fut.keys():
         # Plot the corresponding projection
         im = ax.scatter(ccs_ensemble_std['lon'], ccs_ensemble_std['lat'],
                         c=ccs_ensemble_std[var_target],
-                        s=40, edgecolor='k', linewidth=0.5,
+                        s=60, edgecolor='k', linewidth=0,
                         transform=ccrs.PlateCarree(), zorder=2,
                         vmin=vmin, vmax=vmax,
                         cmap=discrete_cmap)

@@ -11,14 +11,14 @@ cd /gpfs/projects/meteo/WORK/gonzabad/deepESD-pretraining/scripts
 # python -u original.py $VAR_TARGET
 
 # Finetune
-# export NUM_ENSEMBLES=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
-# for member in "${NUM_ENSEMBLES[@]}"
-# do
-#     echo $member  
-#     python -u finetune.py $VAR_TARGET $member original
-#     python -u finetune.py $VAR_TARGET $member pretrained
-#     python -u finetune.py $VAR_TARGET $member pretrained_finetuning
-# done
+export NUM_ENSEMBLES=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
+for member in "${NUM_ENSEMBLES[@]}"
+do
+    echo $member  
+    python -u finetune.py $VAR_TARGET $member original
+    python -u finetune.py $VAR_TARGET $member pretrained
+    python -u finetune.py $VAR_TARGET $member pretrained_finetuning
+done
 
 # Compute XAI metrics (for a single member of the ensemble)
 python -u xai_original.py $VAR_TARGET

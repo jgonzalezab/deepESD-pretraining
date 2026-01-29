@@ -33,7 +33,7 @@ elif mode == 'val':
     path_appendix = 'val'
 
 # Iterate over ensembles
-for num_ensemble in range(1, num_total_ensemble+1):
+for num_ensemble in [x for x in range(1, num_total_ensemble + 1) if x != 5]:
 
     loss_values = {'No pre-training': np.load(f'{loss_path}/{path_appendix}_deepESD_stations_eca_original_{var_target}_ens{num_ensemble}.npy'),
                   'Pre-trained': np.load(f'{loss_path}/{path_appendix}_deepESD_stations_eca_pretrained_{var_target}_ens{num_ensemble}.npy'),

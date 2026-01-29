@@ -36,7 +36,7 @@ ccs_path = paths['ccs']
 var_target = sys.argv[1] # tasmin, tasmax, pr
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 num_ensemble = sys.argv[2] # Member of the ensemble of deep learning models to run
-years_train = ('1980', '2010'); years_test = ('2011', '2020') # Train and test sets
+years_train = ('2009', '2018'); years_test = ('2019', '2021') # Train and test sets
 
 # Training routine of the deep learning model
 training_routine = sys.argv[3] # original, pretrained, pretrained_finetuning 
