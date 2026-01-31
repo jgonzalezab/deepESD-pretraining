@@ -23,7 +23,7 @@ figs_path = paths['figs']
 data_stations_eca = paths['data_stations_eca']
 
 ##### Configuration #####
-var_target = 'tasmin'
+var_target = 'pr'
 var_target_eca = 'tn' if var_target == 'tasmin' else 'tx' if var_target == 'tasmax' else 'rr'
 #########################
 
@@ -38,8 +38,16 @@ stations = stations.rename({var_target_eca: var_target})  # Rename variable to m
 stations = stations.sel(time=slice(*period))
 stations = stations.load()
 
+# Load STATIONS-IBEB dataset
+stations_ibeb_filename = f'{data_path}/PENINSULAYBALEARES_{var_target}_19750101-20201231.nc'
+stations_ibeb = xr.open_dataset(stations_ibeb_filename)
+stations_ibeb = stations_ibeb.drop_vars(('projection', 'alt')) # Remove projection and altitude variables
+stations_ibeb = stations_ibeb.sel(time=slice(*period))
+stations_ibeb = stations_ibeb.load()
+
 # Remove stations with no values in the training period
 stations, _ = trans.remove_stations_with_nans(stations, stations)
+stations_ibeb, _ = trans.remove_stations_with_nans(stations_ibeb, stations_ibeb)
 
 # Load gridded dataset
 gridded_filename = f'{data_path}/{var_target}_AEMET.nc'
@@ -76,11 +84,12 @@ elif var_target == 'pr':
 
 # Datasets to plot
 datasets_to_plot = {'ROCIO-IBEB': gridded,
+                    'STATIONS-IBEB': stations_ibeb,
                     'STATIONS-CAT': stations}
 
 # Compute plot
 n_rows, n_cols = len(datasets_to_plot), len(metrics_to_plot)
-fig = plt.figure(figsize=(8, 5))
+fig = plt.figure(figsize=(8, 7.5))
 figure_idx = 1
 
 for dataset in datasets_to_plot.keys():
@@ -104,7 +113,7 @@ for dataset in datasets_to_plot.keys():
         if figure_idx in (1, 2):
             ax.set_title(metric, size=16)
 
-        if figure_idx in (1, 3):
+        if figure_idx in (1, 3, 5):
             ax.set_yticks([])
             ax.set_ylabel(dataset, size=16)
 
@@ -133,29 +142,42 @@ for dataset in datasets_to_plot.keys():
                                    facecolor='none', transform=ccrs.PlateCarree())
             ax.add_patch(rect)
 
-        elif dataset == 'STATIONS-CAT':
+        elif dataset == 'STATIONS-IBEB':
 
-            point_size = 20
+            if var_target == 'pr':
+                point_size = 5
+            else:
+                point_size = 10
 
             im = plt.scatter(dataset_clim['lon'],
                              dataset_clim['lat'], c=dataset_clim[var_target],
-                             s=point_size, edgecolor='k', linewidth=0.5, zorder=2,
+                             s=point_size, edgecolor='k', linewidth=0, zorder=2,
+                             transform=ccrs.PlateCarree(),
+                             vmin=vmin_plot, vmax=vmax_plot, cmap=discrete_cmap)
+
+        elif dataset == 'STATIONS-CAT':
+
+            point_size = 30
+
+            im = plt.scatter(dataset_clim['lon'],
+                             dataset_clim['lat'], c=dataset_clim[var_target],
+                             s=point_size, edgecolor='k', linewidth=0, zorder=2,
                              transform=ccrs.PlateCarree(),
                              vmin=vmin_plot, vmax=vmax_plot, cmap=discrete_cmap)
 
         figure_idx = figure_idx + 1
 
-        if (var_target == 'pr') and (figure_idx in (3, 4)):
+        if (var_target == 'pr') and (figure_idx in (5, 6)):
             if metric == 'Mean':
-                colorbar_pos = [0.15, 0.06, 0.3, 0.02]
+                colorbar_pos = [0.15, 0.05, 0.3, 0.02]
             elif metric == 'RX1day':
-                colorbar_pos = [0.58, 0.06, 0.3, 0.02]
+                colorbar_pos = [0.58, 0.05, 0.3, 0.02]
 
             cbar_ax = fig.add_axes(colorbar_pos)
             fig.colorbar(im, cax=cbar_ax, orientation = 'horizontal')
 
     if var_target in ('tasmin', 'tasmax'):
-        cbar_ax = fig.add_axes([0.16, 0.06, 0.7, 0.02])
+        cbar_ax = fig.add_axes([0.16, 0.05, 0.7, 0.02])
         fig.colorbar(im, cax=cbar_ax, orientation = 'horizontal')
 
 fig_name = f'climatology_{var_target}.pdf'
